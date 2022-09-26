@@ -1,24 +1,38 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useCallback, useEffect, useRef } from "react";
 
 function App() {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  function setBackgroundColor() {
+    chrome.storage.sync.get("color", ({ color }) => {
+      document.body.style.backgroundColor = color;
+    });
+  }
+
+  const onClick = useCallback(async () => {
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+
+    if (tab) {
+      chrome.scripting.executeScript({
+        target: { tabId: tab.id as number },
+        func: setBackgroundColor,
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    chrome.storage.sync.get("color", ({ color }) => {
+      if (buttonRef.current)
+        buttonRef.current.setAttribute("style", `background-color: ${color}`);
+    });
+  }, []);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div>
+      <button onClick={onClick} ref={buttonRef} id="customButton" />
     </div>
   );
 }
